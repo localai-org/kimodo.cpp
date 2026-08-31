@@ -11,6 +11,7 @@
 #include <cctype>
 #include <cstdint>
 #include <limits>
+#include <stdexcept>
 #include <unordered_map>
 
 namespace kimodo::detail {

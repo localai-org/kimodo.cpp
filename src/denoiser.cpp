@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <stdexcept>
 #include <ggml.h>
 #include <ggml-alloc.h>
 #include <ggml-backend.h>

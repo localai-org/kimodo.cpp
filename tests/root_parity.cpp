@@ -36,10 +36,18 @@ struct weights {
         for (int64_t i = 0; i < gguf_get_n_tensors(file); ++i) {
             const char *n = gguf_get_tensor_name(file, i); tensors.emplace(n, ggml_get_tensor(ctx, n));
         }
+#if defined(_WIN32)
+        _putenv_s("GGML_VK_DISABLE_COOPMAT", "1");
+        _putenv_s("GGML_VK_DISABLE_COOPMAT2", "1");
+        _putenv_s("GGML_VK_DISABLE_F16", "1");
+#else
         setenv("GGML_VK_DISABLE_COOPMAT", "1", 0);
         setenv("GGML_VK_DISABLE_COOPMAT2", "1", 0);
         setenv("GGML_VK_DISABLE_F16", "1", 0);
+#endif
+#if defined(KIMODO_HAVE_GGML_VULKAN)
         if (ggml_backend_vk_get_device_count() > 0) backend = ggml_backend_vk_init(0);
+#endif
         if (!backend) backend = ggml_backend_cpu_init();
         if (!backend) throw std::runtime_error("backend init failed");
         buffer = ggml_backend_alloc_ctx_tensors(ctx, backend); if (!buffer) throw std::runtime_error("weight buffer allocation failed");

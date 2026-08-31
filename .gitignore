@@ -39,3 +39,9 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+
+
+
+#output animations
+/output_motion/

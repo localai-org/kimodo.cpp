@@ -60,7 +60,7 @@ struct component {
 std::unique_ptr<component> open_component(const std::filesystem::path &path, ggml_backend_t backend) {
     auto result = std::make_unique<component>();
     gguf_init_params params{true, &result->ctx};
-    result->file = gguf_init_from_file(path.c_str(), params);
+    result->file = gguf_init_from_file(path.string().c_str(), params);
     if (!result->file || !result->ctx)
         throw std::runtime_error("cannot load text component " + path.string());
     result->weights = ggml_backend_alloc_ctx_tensors(result->ctx, backend);
@@ -216,7 +216,9 @@ std::expected<std::unique_ptr<llm_text_encoder>, std::string> llm_text_encoder::
     for (int i = 0; i < 32; ++i) { char name[32]; std::snprintf(name, sizeof(name), "layer-%02d.gguf", i); if (!std::filesystem::is_regular_file(path / name)) return std::unexpected("text bundle missing " + std::string(name)); }
     auto result = std::unique_ptr<llm_text_encoder>(new llm_text_encoder);
     result->impl_ = std::make_unique<impl>();
+#if defined(KIMODO_HAVE_GGML_VULKAN)
     if (use_vulkan() && ggml_backend_vk_get_device_count()) result->impl_->backend = ggml_backend_vk_init(0);
+#endif
     if (!result->impl_->backend) {
         result->impl_->backend = ggml_backend_cpu_init();
         if (!result->impl_->backend) return std::unexpected("cannot initialize text backend");

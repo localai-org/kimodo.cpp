@@ -32,7 +32,11 @@ template<class T> std::vector<T> read(const std::filesystem::path &path) {
 std::unique_ptr<loaded> load(const char *path, bool vulkan) {
     auto out=std::make_unique<loaded>(); gguf_init_params p{true,&out->ctx}; out->file=gguf_init_from_file(path,p);
     if(!out->file||!out->ctx) throw std::runtime_error("cannot load GGUF");
+#if defined(KIMODO_HAVE_GGML_VULKAN)
     if(vulkan && ggml_backend_vk_get_device_count()) out->backend=ggml_backend_vk_init(0);
+#else
+    (void)vulkan;
+#endif
     if(!out->backend) { out->backend=ggml_backend_cpu_init(); ggml_backend_cpu_set_n_threads(out->backend,24); }
     out->buffer=ggml_backend_alloc_ctx_tensors(out->ctx,out->backend); if(!out->buffer) throw std::runtime_error("cannot allocate weights");
     std::ifstream in(path,std::ios::binary); const auto start=gguf_get_data_offset(out->file); auto *weight=ggml_get_tensor(out->ctx,"final_norm.weight");
