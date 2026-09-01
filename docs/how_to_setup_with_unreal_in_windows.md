@@ -20,7 +20,7 @@ Open **PowerShell** and run:
 
 ```powershell
 # 1. Clone the repository
-git clone https://github.com/Deepesh70/kimodo.cpp.git E:\Kimodo
+git clone https://github.com/localai-org/kimodo.cpp.git E:\Kimodo
 cd E:\Kimodo
 
 # 2. Initialize and update the GGML submodule

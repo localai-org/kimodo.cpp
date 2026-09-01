@@ -60,6 +60,7 @@ std::unique_ptr<weights> load(const char *path, bool use_vulkan) {
     auto value = std::make_unique<weights>();
     gguf_init_params params{true, &value->context};
     value->file = gguf_init_from_file(path, params);
+    if (!value->file || !value->context) throw std::runtime_error("cannot load layer GGUF");
 #if defined(KIMODO_HAVE_GGML_VULKAN)
     if (use_vulkan && ggml_backend_vk_get_device_count() > 0) value->backend = ggml_backend_vk_init(0);
 #else
