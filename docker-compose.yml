@@ -1,0 +1,37 @@
+# kimodo.cpp text-to-motion demo, packaged for Portainer.
+#
+# Deployment (full walkthrough in docs/docker_portainer.md):
+#   1. Build the image on the Docker host from the repository checkout:
+#        docker build -t kimodo:latest .
+#   2. Portainer -> Stacks -> Add stack -> Web editor -> paste this file
+#      -> Deploy the stack.
+#
+# Inference runs on the CPU backend by default. See
+# "Enabling GPU acceleration" in docs/docker_portainer.md for the Vulkan
+# device block to add once the host driver stack supports it.
+
+services:
+  kimodo:
+    image: kimodo:latest
+    container_name: kimodo
+    restart: unless-stopped
+    ports:
+      - "8094:8094"
+    environment:
+      # Space-separated motion models to download on first start:
+      # soma-rp-v1.1 soma-seed-v1.1 g1-rp-v1 g1-seed-v1
+      KIMODO_MODELS: "soma-rp-v1.1"
+      # Force the CPU backend: with no usable Vulkan device in the
+      # container, GGML's Vulkan enumeration can fail hard instead of
+      # falling back (vk::createInstance ErrorIncompatibleDriver).
+      # Remove this line when enabling GPU passthrough.
+      KIMODO_BACKEND: "cpu"
+      # KIMODO_THREADS: "8"      # CPU threads; default is all cores
+      # Text-encoder layers held resident at once, 1..32.  Lower values
+      # trade prompt-encoding speed for memory headroom.
+      KIMODO_TEXT_LAYER_CHUNK: "8"
+    volumes:
+      - kimodo-data:/data
+
+volumes:
+  kimodo-data:

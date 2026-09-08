@@ -1,0 +1,44 @@
+# Keep the image build context minimal: only what the CMake/Go builds and
+# the runtime scripts need.  Everything here is either version-control
+# metadata, local build output, or multi-gigabyte model weights.
+
+# VCS and editor/tooling state
+.git
+.gitmodules
+.zcode
+.idea
+.vscode
+
+# Local secrets — never ship these into an image
+ssh-creds.txt
+*_creds.txt
+*.pem
+*.key
+
+# The Dockerfile checks out GGML itself at the pinned submodule commit.
+ggml
+
+# Local build outputs and caches
+build
+.kimodo-manifests
+
+# Model weights and generated bundles (downloaded into /data at runtime)
+models
+generated
+*.gguf
+
+# Demo gallery output and parity fixtures
+demo-output
+fixtures
+
+# Upstream reference harness and packaging-only helpers
+reference
+scripts/hf
+scripts/publish_gguf.py
+scripts/download_weights.sh
+scripts/convert_*.py
+scripts/convert_*.sh
+
+# Nix development environment
+flake.nix
+flake.lock
