@@ -80,10 +80,10 @@ ENV LD_LIBRARY_PATH=/app/lib \
 VOLUME /data
 EXPOSE 8094
 
-# The first start downloads ~16 GB of weights (SOMA RP v1.1: ~1.1 GB
-# motion + ~15 GB shared text encoder) before the HTTP server binds, so
-# allow a generous start period; later starts are immediate because the
-# volume keeps both weights and the animation gallery.
+# The first start downloads the weights (SOMA RP v1.1: ~1.1 GB motion
+# plus the 7.6 GB default Q8_0 text encoder) before the HTTP server
+# binds, so allow a generous start period; later starts are immediate
+# because the volume keeps both weights and the animation gallery.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30m --retries=3 \
     CMD python3 -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.environ.get('KIMODO_PORT', '8094') + '/api/models', timeout=3)"
 

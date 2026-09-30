@@ -29,12 +29,17 @@ services:
       # Force the CPU backend: works on any host.  Remove when enabling
       # GPU inference below.
       KIMODO_BACKEND: "cpu"
+      # Text encoder variant fetched on first start: bf16, q8_0 (default),
+      # q6_k, q5_k, q4_k or q4_k_m.  Smaller variants trade prompt
+      # fidelity for download size and memory.
+      # KIMODO_TEXT_QUANTIZATION: "q8_0"
+      # Text-encoder memory knobs (defaults mirror upstream: 32-layer
+      # graphs, 10 GiB residency ceiling).  On a 4 GB GPU, bound the
+      # residency instead of disabling GPU passthrough, e.g.:
+      # KIMODO_TEXT_RESIDENT_LIMIT_MIB: "512"
+      # KIMODO_TEXT_LAYER_CHUNK: "8"
       # CPU threads for CPU inference (defaults to all visible cores).
       # KIMODO_THREADS: "8"
-      # Text-encoder layers held resident at once, 1..32.  Lower values
-      # trade prompt-encoding speed for memory headroom; on a 4 GB GPU
-      # use 4 to keep encoder chunking inside VRAM.
-      KIMODO_TEXT_LAYER_CHUNK: "8"
       # Optional: Hugging Face token, raises rate limits for the
       # first-start weight download on shared connections.
       # HF_TOKEN: "hf_..."
