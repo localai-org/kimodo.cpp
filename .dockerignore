@@ -10,7 +10,6 @@
 .vscode
 
 # Local secrets — never ship these into an image
-ssh-creds.txt
 *_creds.txt
 *.pem
 *.key
