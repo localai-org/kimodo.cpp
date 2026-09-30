@@ -1,18 +1,23 @@
 # kimodo.cpp text-to-motion demo, packaged for Portainer.
 #
-# Deployment (full walkthrough in docs/docker_portainer.md):
-#   1. Build the image on the Docker host from the repository checkout:
-#        docker build -t kimodo:latest .
-#   2. Portainer -> Stacks -> Add stack -> Web editor -> paste this file
-#      -> Deploy the stack.
+# Generic deployment (see docs/docker_portainer.md):
 #
-# Inference runs on the CPU backend by default. See
-# "Enabling GPU acceleration" in docs/docker_portainer.md for the Vulkan
-# device block to add once the host driver stack supports it.
+#   Docker Compose, from a repository checkout:
+#     docker compose up --build          -> http://localhost:8094
+#
+#   Portainer: build the image on the host
+#     (docker build -t kimodo:latest .)  -> deploy a Web editor stack with
+#     this file minus the build: key, or a Repository stack as-is.
+#
+# The CPU backend is the default because it works everywhere; with no
+# usable Vulkan device in the container, GGML's Vulkan enumeration can
+# abort instead of falling back.  See the GPU section of the guide for
+# the two-line change that enables GPU inference.
 
 services:
   kimodo:
     image: kimodo:latest
+    build: .
     container_name: kimodo
     restart: unless-stopped
     ports:
@@ -21,15 +26,23 @@ services:
       # Space-separated motion models to download on first start:
       # soma-rp-v1.1 soma-seed-v1.1 g1-rp-v1 g1-seed-v1
       KIMODO_MODELS: "soma-rp-v1.1"
-      # Force the CPU backend: with no usable Vulkan device in the
-      # container, GGML's Vulkan enumeration can fail hard instead of
-      # falling back (vk::createInstance ErrorIncompatibleDriver).
-      # Remove this line when enabling GPU passthrough.
+      # Force the CPU backend: works on any host.  Remove when enabling
+      # GPU inference below.
       KIMODO_BACKEND: "cpu"
-      # KIMODO_THREADS: "8"      # CPU threads; default is all cores
+      # CPU threads for CPU inference (defaults to all visible cores).
+      # KIMODO_THREADS: "8"
       # Text-encoder layers held resident at once, 1..32.  Lower values
-      # trade prompt-encoding speed for memory headroom.
+      # trade prompt-encoding speed for memory headroom; on a 4 GB GPU
+      # use 4 to keep encoder chunking inside VRAM.
       KIMODO_TEXT_LAYER_CHUNK: "8"
+      # Optional: Hugging Face token, raises rate limits for the
+      # first-start weight download on shared connections.
+      # HF_TOKEN: "hf_..."
+    # For GPU inference (needs nvidia-container-toolkit on the host and
+    # a generated CDI spec, see the guide), uncomment both:
+    # devices:
+    #   - nvidia.com/gpu=all
+    # NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
     volumes:
       - kimodo-data:/data
 
