@@ -108,6 +108,20 @@ Quantisation comparisons produced by the workflow in
 `--comparisons` option. The comparison view overlays every variant on a shared
 timeline and provides world-space and root-position-aligned modes.
 
+### Docker
+
+To run the demo without a local build toolchain:
+
+```sh
+docker compose up --build
+```
+
+The demo is then served at `http://localhost:8094`, and the weights (a motion
+model plus a monolithic text encoder) are downloaded into the `kimodo-data`
+volume on first start. Inference uses the CPU backend by default; see
+[docs/docker_portainer.md](docs/docker_portainer.md) for GPU passthrough,
+Portainer deployment and configuration.
+
 ## Weights
 
 Ready-to-run native GGML weights are published under the Hugging Face
