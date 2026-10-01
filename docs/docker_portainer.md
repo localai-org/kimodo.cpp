@@ -56,6 +56,15 @@ An interrupted download resumes on restart. On shared or rate-limited
 connections, set `HF_TOKEN` in the environment to raise the Hugging Face
 rate limits.
 
+A fresh deployment fetches the packed text encoder selected by
+`KIMODO_TEXT_QUANTIZATION` (default `q8_0`), which is also what a
+generation request uses when it does not name a variant. Deployments
+carrying only the **legacy F32 component directory** (pre-quantization
+downloads are reused as-is) should therefore select **bf16** in the UI's
+text-quantization picker, or set `KIMODO_TEXT_QUANTIZATION` once to add a
+packed bundle — the default request path expects a packed bundle and
+answers 409 otherwise.
+
 ## Configuration
 
 All knobs are environment variables on the `kimodo` service (edit them in
