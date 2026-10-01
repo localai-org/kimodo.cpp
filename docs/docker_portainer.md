@@ -61,9 +61,13 @@ A fresh deployment fetches the packed text encoder selected by
 generation request uses when it does not name a variant. Deployments
 carrying only the **legacy F32 component directory** (pre-quantization
 downloads are reused as-is) should therefore select **bf16** in the UI's
-text-quantization picker, or set `KIMODO_TEXT_QUANTIZATION` once to add a
-packed bundle — the default request path expects a packed bundle and
-answers 409 otherwise.
+text-quantization picker, or set `KIMODO_TEXT_QUANTIZATION` once — the
+entrypoint then fetches that packed bundle on the next start — because
+the default request path expects a packed bundle and answers 409
+otherwise. A packed bundle only counts as downloaded once its sibling
+`tokenizer.gguf` is in place, so a first start interrupted between the
+two resumes the text download instead of starting a server that cannot
+generate.
 
 ## Configuration
 
@@ -75,7 +79,7 @@ volume keeps weights and gallery):
 | --- | --- | --- |
 | `KIMODO_MODELS` | `soma-rp-v1.1` | Space-separated motion models to fetch: `soma-rp-v1.1 soma-seed-v1.1 g1-rp-v1 g1-seed-v1`. Adding one later triggers a download of just that GGUF on next start. Explicitly empty disables downloading (mount weights yourself). |
 | `KIMODO_BACKEND` | `cpu` (compose) | The compose default works everywhere. With the variable removed, the binary auto-selects Vulkan when a usable device is present. |
-| `KIMODO_TEXT_QUANTIZATION` | `q8_0` | Text encoder fetched on first start: `bf16`, `q8_0`, `q6_k`, `q5_k`, `q4_k`, `q4_k_m`. Smaller variants trade prompt fidelity for download size and memory. A pre-existing bundle (packed or legacy F32) is reused regardless. |
+| `KIMODO_TEXT_QUANTIZATION` | `q8_0` | Text encoder fetched on first start: `bf16`, `q8_0`, `q6_k`, `q5_k`, `q4_k`, `q4_k_m`. Smaller variants trade prompt fidelity for download size and memory. Unset, a pre-existing bundle (packed or legacy F32) is reused regardless; set explicitly, the selected packed bundle is fetched on the next start if absent. |
 | `KIMODO_TEXT_LAYER_CHUNK` | `32` | Text-encoder layers per GGML graph. Lower values trade throughput for memory headroom. |
 | `KIMODO_TEXT_RESIDENT_LIMIT_MIB` | `10240` | VRAM/RAM ceiling for resident text-encoder weights; layers stream beyond it. Lower this on small GPUs (see GPU section). |
 | `KIMODO_THREADS` | all cores | CPU threads for CPU inference. Set when capping the container's CPUs, since the auto value does not follow cgroup limits. |
