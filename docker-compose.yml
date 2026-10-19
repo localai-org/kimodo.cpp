@@ -1,0 +1,55 @@
+# kimodo.cpp text-to-motion demo, packaged for Portainer.
+#
+# Generic deployment (see docs/docker_portainer.md):
+#
+#   Docker Compose, from a repository checkout:
+#     docker compose up --build          -> http://localhost:8094
+#
+#   Portainer: build the image on the host
+#     (docker build -t kimodo:latest .)  -> deploy a Web editor stack with
+#     this file minus the build: key, or a Repository stack as-is.
+#
+# The CPU backend is the default because it works everywhere; with no
+# usable Vulkan device in the container, GGML's Vulkan enumeration can
+# abort instead of falling back.  See the GPU section of the guide for
+# the two-line change that enables GPU inference.
+
+services:
+  kimodo:
+    image: kimodo:latest
+    build: .
+    container_name: kimodo
+    restart: unless-stopped
+    ports:
+      - "8094:8094"
+    environment:
+      # Space-separated motion models to download on first start:
+      # soma-rp-v1.1 soma-seed-v1.1 g1-rp-v1 g1-seed-v1
+      KIMODO_MODELS: "soma-rp-v1.1"
+      # Force the CPU backend: works on any host.  Remove when enabling
+      # GPU inference below.
+      KIMODO_BACKEND: "cpu"
+      # Text encoder variant fetched on first start: bf16, q8_0 (default),
+      # q6_k, q5_k, q4_k or q4_k_m.  Smaller variants trade prompt
+      # fidelity for download size and memory.
+      # KIMODO_TEXT_QUANTIZATION: "q8_0"
+      # Text-encoder memory knobs (defaults mirror upstream: 32-layer
+      # graphs, 10 GiB residency ceiling).  On a 4 GB GPU, bound the
+      # residency instead of disabling GPU passthrough, e.g.:
+      # KIMODO_TEXT_RESIDENT_LIMIT_MIB: "512"
+      # KIMODO_TEXT_LAYER_CHUNK: "8"
+      # CPU threads for CPU inference (defaults to all visible cores).
+      # KIMODO_THREADS: "8"
+      # Optional: Hugging Face token, raises rate limits for the
+      # first-start weight download on shared connections.
+      # HF_TOKEN: "hf_..."
+    # For GPU inference (needs nvidia-container-toolkit on the host and
+    # a generated CDI spec, see the guide), uncomment both:
+    # devices:
+    #   - nvidia.com/gpu=all
+    # NVIDIA_DRIVER_CAPABILITIES: "graphics,compute,utility"
+    volumes:
+      - kimodo-data:/data
+
+volumes:
+  kimodo-data:

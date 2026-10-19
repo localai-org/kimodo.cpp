@@ -96,9 +96,25 @@ type generatorSession struct {
 	stdout *bufio.Reader
 }
 
+// envOr keeps the built-in default unless the deployment (e.g. a
+// container) pre-sets the variable; appended after os.Environ() below,
+// an explicit value would otherwise be overridden by the hardcode.
+func envOr(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
 func startGeneratorSession(generator string, model motionModel, text textBundle) (*generatorSession, error) {
 	cmd := exec.Command(generator, "--server", model.Motion, text.Path)
-	cmd.Env = append(os.Environ(), "KIMODO_BACKEND=vulkan", "KIMODO_TEXT_LAYER_CHUNK=32", "KIMODO_TEXT_RESIDENT_LIMIT_MIB=10000")
+	// Deployments may force KIMODO_BACKEND=cpu; the vulkan default itself
+	// falls back to CPU when no device is present.  The memory knobs are
+	// likewise overridable so small-VRAM hosts can bound residency.
+	cmd.Env = append(os.Environ(),
+		"KIMODO_BACKEND="+envOr("KIMODO_BACKEND", "vulkan"),
+		"KIMODO_TEXT_LAYER_CHUNK="+envOr("KIMODO_TEXT_LAYER_CHUNK", "32"),
+		"KIMODO_TEXT_RESIDENT_LIMIT_MIB="+envOr("KIMODO_TEXT_RESIDENT_LIMIT_MIB", "10000"))
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
