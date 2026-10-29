@@ -60,18 +60,7 @@ def download_and_verify(repo: str, revision: str, output_dir: Path,
         if p.is_absolute() or ".." in p.parts or p.suffix != ".gguf":
             continue
         
-        matches = False
-        for pat in patterns:
-            if pat.endswith("*"):
-                prefix = pat[:-1]
-                if rel_path.startswith(prefix):
-                    matches = True
-                    break
-            elif rel_path == pat:
-                matches = True
-                break
-        
-        if not matches:
+        if rel_path not in patterns:
             continue
         matched.add(rel_path)
 

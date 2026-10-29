@@ -32,7 +32,8 @@ at a time does not require separate per-layer files.
 | Q4_K | `Llama-3-Kimodo-Q4_K.gguf` | 4.39 | Experimental |
 | Q4_K_M | `Llama-3-Kimodo-Q4_K_M.gguf` | 5.06 | Preferred low-bit experiment |
 
-The legacy split BF16 tree remains temporarily available for older clients.
+The published distribution contains only monolithic weight variants and one
+shared tokenizer. Split component files are local conversion intermediates.
 
 ## Provenance and licence
 

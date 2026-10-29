@@ -65,10 +65,6 @@ MOTION_MODELS = {
         "redistributable": True,
     },
 }
-TEXT_NAMES = (
-    "tokenizer.gguf", "embedding.gguf", "final-norm.gguf",
-    *(f"layer-{index:02d}.gguf" for index in range(32)),
-)
 TEXT_VARIANTS = {
     "bf16": "Llama-3-Kimodo-BF16.gguf",
     "q8_0": "Llama-3-Kimodo-Q8_0.gguf",
@@ -112,10 +108,7 @@ def artifacts(component: str, motion: Path, motion_name: str, bundle: Path,
     if component == "motion":
         result.append((motion, f"models/{motion_name}"))
     else:
-        # Keep the original BF16 component tree for old downloaders during the
-        # migration. New clients select one monolithic weight file and share a
-        # single tokenizer across every quantization.
-        result.extend((bundle / name, f"generated/llm2vec-text-bundle/{name}") for name in TEXT_NAMES)
+        # All monolithic variants share one tokenizer.
         result.append((bundle / "tokenizer.gguf", "tokenizer.gguf"))
         result.extend((packed / filename, filename) for filename in TEXT_VARIANTS.values())
     for source, destination in result:
@@ -209,19 +202,6 @@ def main() -> int:
     from huggingface_hub import CommitOperationAdd, HfApi
     api = HfApi()
     api.create_repo(repo, repo_type="model", exist_ok=True)
-    remote_paths = set(api.list_repo_files(repo_id=repo, repo_type="model"))
-    legacy_prefix = "generated/llm2vec-text-bundle/"
-    legacy_files = [(source, destination) for source, destination in files
-                    if destination.startswith(legacy_prefix)]
-    missing_legacy = [destination for _, destination in legacy_files
-                      if destination not in remote_paths]
-    release_files = files
-    if args.component == "text" and not missing_legacy:
-        # The existing public repository already contains this compatibility
-        # tree. Keep it in MANIFEST.json, but avoid needlessly rehashing and
-        # pre-uploading 35 unchanged paths on every quantization release.
-        release_files = [(source, destination) for source, destination in files
-                         if not destination.startswith(legacy_prefix)]
     uploads = [(card, "README.md"), (notice, "NOTICE")]
     if args.component == "text":
         uploads.append((LLAMA_LICENSE, "LICENSE-META-LLAMA-3.txt"))
@@ -230,7 +210,7 @@ def main() -> int:
     # one model artifact at a time; each operation is resumable and bounded.
     # Publish the manifest last so clients never observe a variant before its
     # weights and tokenizer exist.
-    for source, destination in release_files:
+    for source, destination in files:
         print(f"uploading {destination} ...", flush=True)
         api.upload_file(path_or_fileobj=str(source), path_in_repo=destination,
                         repo_id=repo, repo_type="model",

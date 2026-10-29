@@ -34,7 +34,7 @@ command -v hf >/dev/null || { echo "hf not found; enter the Nix shell first" >&2
 
 mkdir -p "$output"
 
-download_and_verify() { # repo include-pattern...
+download_and_verify() { # repo relative-path...
     local repo=$1; shift
     local manifest_dir="$output/.kimodo-manifests/${repo//\//__}"
     mkdir -p "$manifest_dir"
@@ -56,13 +56,15 @@ root = output.resolve()
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 if manifest.get("format") != "kimodo-gguf-manifest-v1":
     raise SystemExit("unsupported or malformed GGUF manifest")
-requested = sys.argv[3:]
+requested = set(sys.argv[3:])
+matched = set()
 for entry in manifest.get("files", []):
     relative = Path(entry.get("path", ""))
     if relative.is_absolute() or ".." in relative.parts or relative.suffix != ".gguf":
         raise SystemExit(f"unsafe manifest path: {relative}")
-    if not any(relative.match(pattern) for pattern in requested):
+    if relative.as_posix() not in requested:
         continue
+    matched.add(relative.as_posix())
     path = root / relative
     if not path.is_file() or path.stat().st_size != entry.get("bytes"):
         raise SystemExit(f"missing or wrong-sized file: {relative}")
@@ -72,6 +74,9 @@ for entry in manifest.get("files", []):
             h.update(chunk)
     if h.hexdigest() != entry.get("sha256"):
         raise SystemExit(f"checksum mismatch: {relative}")
+missing = requested - matched
+if missing:
+    raise SystemExit(f"selected paths absent from manifest: {', '.join(sorted(missing))}")
 print("verified native Kimodo GGUF bundle")
 PY
 }
