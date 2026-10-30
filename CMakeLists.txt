@@ -34,6 +34,12 @@ if(EXISTS "${KIMODO_GGML_SOURCE_DIR}/CMakeLists.txt")
   set(GGML_BACKEND_DL OFF CACHE BOOL "" FORCE)
   set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
   add_subdirectory("${KIMODO_GGML_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/ggml" EXCLUDE_FROM_ALL)
+  if(TARGET ggml-vulkan)
+    # GGML finds this package in a child scope but does not consume its headers.
+    # Import it here too (using the cached package location) for this link call.
+    find_package(SPIRV-Headers CONFIG REQUIRED)
+    target_link_libraries(ggml-vulkan PRIVATE SPIRV-Headers::SPIRV-Headers)
+  endif()
   set(KIMODO_HAVE_GGML TRUE)
   set(KIMODO_VK_LIBS)
   set(KIMODO_VK_DEFS)

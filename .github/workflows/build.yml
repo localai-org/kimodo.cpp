@@ -1,0 +1,63 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        headers: [system, prefix, vulkan-off]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build g++-14 glslc libvulkan-dev spirv-headers
+      - name: Move SPIRV-Headers outside the system include path
+        if: matrix.headers == 'prefix'
+        run: |
+          prefix="$RUNNER_TEMP/spirv-prefix"
+          mkdir -p "$prefix/include" "$prefix/share/cmake"
+          sudo mv /usr/include/spirv "$prefix/include/"
+          sudo mv /usr/share/cmake/SPIRV-Headers "$prefix/share/cmake/"
+          echo "CMAKE_PREFIX_PATH=$prefix" >> "$GITHUB_ENV"
+          # Prove that the compiler cannot silently use a system header.
+          if printf '#include <spirv/unified1/spirv.hpp>\n' | g++-14 -x c++ -E - >/dev/null 2>&1; then
+            echo "SPIRV-Headers is still on the default include path" >&2
+            exit 1
+          fi
+      - name: Configure
+        env:
+          CC: gcc-14
+          CXX: g++-14
+          HEADER_LAYOUT: ${{ matrix.headers }}
+        run: |
+          args=()
+          if [ "$HEADER_LAYOUT" = vulkan-off ]; then
+            args+=(-DKIMODO_ENABLE_VULKAN=OFF -DCMAKE_DISABLE_FIND_PACKAGE_SPIRV-Headers=TRUE)
+          fi
+          cmake -S . -B build/ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON "${args[@]}"
+      - name: Verify custom include propagation
+        if: matrix.headers == 'prefix'
+        run: |
+          python3 - <<'PYTHON'
+          import json, os
+          from pathlib import Path
+          commands = json.loads(Path('build/ci/compile_commands.json').read_text())
+          command = next(c['command'] for c in commands if c['file'].endswith('/ggml-vulkan.cpp'))
+          assert os.environ['CMAKE_PREFIX_PATH'] + '/include' in command, command
+          PYTHON
+      - name: Build
+        run: cmake --build build/ci --parallel 2
