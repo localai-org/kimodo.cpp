@@ -20,6 +20,9 @@
 #if defined(KIMODO_HAVE_GGML_VULKAN)
 #include <ggml-vulkan.h>
 #endif
+#if defined(KIMODO_HAVE_GGML_METAL)
+#include <ggml-metal.h>
+#endif
 
 namespace kimodo::detail {
 namespace {
@@ -84,6 +87,14 @@ std::expected<std::unique_ptr<ggml_motion_weights>, std::string> ggml_motion_wei
     if (!force_cpu) {
         configure_vulkan_f32_parity();
         if (ggml_backend_vk_get_device_count() > 0) result->backend_ = ggml_backend_vk_init(0);
+    }
+#endif
+#if defined(KIMODO_HAVE_GGML_METAL)
+    // Apple GPUs.  Opt-in (KIMODO_BACKEND=metal) so the CPU path stays the
+    // reference; a failed initialization falls through to the CPU backend.
+    if (!result->backend_) {
+        const char *value = std::getenv("KIMODO_BACKEND");
+        if (value && std::string_view(value) == "metal") result->backend_ = ggml_backend_metal_init();
     }
 #endif
     if (!result->backend_) {

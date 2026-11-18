@@ -10,6 +10,9 @@
 #include <ggml-backend.h>
 #include <ggml-cpu.h>
 #include <ggml-vulkan.h>
+#if defined(KIMODO_HAVE_GGML_METAL)
+#include <ggml-metal.h>
+#endif
 #include <gguf.h>
 
 #include <algorithm>
@@ -467,6 +470,12 @@ std::expected<std::unique_ptr<llm_text_encoder>, std::string> llm_text_encoder::
     result->impl_ = std::make_unique<impl>();
 #if defined(KIMODO_HAVE_GGML_VULKAN)
     if (use_vulkan() && ggml_backend_vk_get_device_count()) result->impl_->backend = ggml_backend_vk_init(0);
+#endif
+#if defined(KIMODO_HAVE_GGML_METAL)
+    if (!result->impl_->backend) {
+        const char *choice = std::getenv("KIMODO_BACKEND");
+        if (choice && std::string_view(choice) == "metal") result->impl_->backend = ggml_backend_metal_init();
+    }
 #endif
     if (!result->impl_->backend) {
         result->impl_->backend = ggml_backend_cpu_init();
