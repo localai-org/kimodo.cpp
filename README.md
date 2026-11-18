@@ -10,7 +10,7 @@ GGML/C++ implementation of NVIDIA's Kimodo text-to-motion model.
 
 The five released Kimodo motion checkpoints accept either a UTF-8 prompt or a
 precomputed LLM2Vec embedding and generate local rotations plus root
-translations on CPU or Vulkan:
+translations on CPU, Vulkan, or Metal on Apple GPUs:
 
 - SMPL-X RP v1: 22 joints
 - SOMA RP/SEED v1.1: the predicted compact 30-joint control skeleton
@@ -66,6 +66,28 @@ nix develop path:. --command env \
 
 Leak detection is disabled because Vulkan loader/driver allocations are global
 to the process. The GGUF parser fuzzer requires Clang.
+
+## Build on macOS (Metal)
+
+Apple Clang 17 and CMake are enough; Vulkan is not needed. GGML's Metal
+backend is linked by default on Apple platforms (`-DKIMODO_ENABLE_METAL=OFF`
+disables it) and is selected at run time:
+
+```sh
+git submodule update --init --recursive
+cmake -S . -B build/release -DCMAKE_BUILD_TYPE=Release -DKIMODO_ENABLE_VULKAN=OFF
+cmake --build build/release -j
+KIMODO_BACKEND=metal build/release/kmd-generate models/kimodo-soma-rp-v1.1-f32.gguf \
+  Llama-3-Kimodo-Q4_K_M.gguf prompt.txt 150 50 7 output_motion/
+```
+
+Without `KIMODO_BACKEND=metal` the CPU backend is used, as before. On an
+Apple M4 (SOMA-RP v1.1, 150 frames, 50 steps, Q4_K_M text encoder) a full
+generation takes about 20 s on Metal and 95-245 s on the CPU. With the same
+embedding and initial noise the motion model's rotations agree with the CPU
+within 0.25 degrees (mean 0.03) and root positions within 2 mm. The quantised
+text encoder agrees to a cosine of 0.9997 rather than exactly, so a prompt and
+seed do not reproduce the CPU motion bit for bit.
 
 ## API
 
